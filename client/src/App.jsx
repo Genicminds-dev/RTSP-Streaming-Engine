@@ -45,8 +45,8 @@ export default function App() {
   const hlsRef = useRef(null);
   const heartbeatTimer = useRef(null);
 
-  // const API_BASE_URL = "https://lawngreen-spider-136291.hostingersite.com";
-  const API_BASE_URL = "http://localhost:4000";
+  const API_BASE_URL = "https://lawngreen-spider-136291.hostingersite.com";
+  // const API_BASE_URL = "http://localhost:4000";
   // Fetch all registered cameras
   const fetchCameras = useCallback(async () => {
     try {
