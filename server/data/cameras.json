@@ -2,7 +2,7 @@
   {
     "id": "cam-01",
     "name": "Default IP Camera",
-    "rtspUrl": "rtsp://admin:admin@203.190.139.10:7010/538",
+    "rtspUrl": "rtsp://admin:admin@203.190.139.10:7010/539",
     "codec": "libx264",
     "createdAt": "2026-10-14T05:13:17.872Z"
   }

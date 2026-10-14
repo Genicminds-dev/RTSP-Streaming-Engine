@@ -45,8 +45,8 @@ export default function App() {
   const hlsRef = useRef(null);
   const heartbeatTimer = useRef(null);
 
-  const API_BASE_URL = "https://lawngreen-spider-136291.hostingersite.com";
-
+  // const API_BASE_URL = "https://lawngreen-spider-136291.hostingersite.com";
+  const API_BASE_URL = "http://localhost:4000";
   // Fetch all registered cameras
   const fetchCameras = useCallback(async () => {
     try {
@@ -637,13 +637,13 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="integration-method">
+              {/* <div className="integration-method">
                 <h4>Method 2: REST API for Dynamic Multi-Camera Switching</h4>
                 <p>Fetch the live list of registered cameras and stream endpoints from your portal backend or frontend:</p>
                 <pre>
                   <code>{`// Fetch available cameras dynamically\nconst res = await fetch("https://lawngreen-spider-136291.hostingersite.com/api/cameras");\nconst cameras = await res.json();\n\n// Returns: [{ id, name, status, streamUrl, embedUrl }, ...]`}</code>
                 </pre>
-              </div>
+              </div> */}
 
               <div className="integration-method">
                 <h4>Method 3: Native Hls.js in HTML5 Video</h4>
