@@ -48,7 +48,7 @@ export default function App() {
   // Fetch all registered cameras
   const fetchCameras = useCallback(async () => {
     try {
-      const res = await fetch("/api/cameras");
+      const res = await fetch("https://lawngreen-spider-136291.hostingersite.com/api/cameras");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setCameras(data);
@@ -165,7 +165,7 @@ export default function App() {
   async function handleStartStream(camId) {
     setBusyAction(camId);
     try {
-      const res = await fetch(`/api/cameras/${camId}/start`, { method: "POST" });
+      const res = await fetch(`https://lawngreen-spider-136291.hostingersite.com/api/cameras/${camId}/start`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to start stream");
       setBannerMessage({ type: "success", text: `Stream started for camera: ${camId}` });
@@ -182,7 +182,7 @@ export default function App() {
   async function handleStopStream(camId) {
     setBusyAction(camId);
     try {
-      const res = await fetch(`/api/cameras/${camId}/stop`, { method: "POST" });
+      const res = await fetch(`https://lawngreen-spider-136291.hostingersite.com/api/cameras/${camId}/stop`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to stop stream");
       setBannerMessage({ type: "info", text: `Stream stopped for camera: ${camId}` });
@@ -212,7 +212,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch("/api/cameras", {
+      const res = await fetch("https://lawngreen-spider-136291.hostingersite.com/api/cameras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
@@ -235,7 +235,7 @@ export default function App() {
     if (!window.confirm(`Are you sure you want to delete '${camName}' (${camId})?`)) return;
 
     try {
-      const res = await fetch(`/api/cameras/${camId}`, { method: "DELETE" });
+      const res = await fetch(`https://lawngreen-spider-136291.hostingersite.com/api/cameras/${camId}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Failed to delete camera");
@@ -639,7 +639,7 @@ export default function App() {
                 <h4>Method 2: REST API for Dynamic Multi-Camera Switching</h4>
                 <p>Fetch the live list of registered cameras and stream endpoints from your portal backend or frontend:</p>
                 <pre>
-                  <code>{`// Fetch available cameras dynamically\nconst res = await fetch("${window.location.origin}/api/cameras");\nconst cameras = await res.json();\n\n// Returns: [{ id, name, status, streamUrl, embedUrl }, ...]`}</code>
+                  <code>{`// Fetch available cameras dynamically\nconst res = await fetch("https://lawngreen-spider-136291.hostingersite.com/api/cameras");\nconst cameras = await res.json();\n\n// Returns: [{ id, name, status, streamUrl, embedUrl }, ...]`}</code>
                 </pre>
               </div>
 
