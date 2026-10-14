@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Camera Stream</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #070d18; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .player-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
+    video { width: 100%; height: 100%; object-fit: contain; }
+    
+    .overlay-bar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      background: rgba(13, 22, 38, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+    .dot.live { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25); }
+    .dot.buffering { background: #f59e0b; animation: pulse 1s infinite; }
+    
+    .controls {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .btn-action {
+      background: rgba(13, 22, 38, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s ease;
+    }
+    .btn-action:hover { background: rgba(30, 48, 80, 0.9); }
+    
+    .placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: #09101d;
+      text-align: center;
+      padding: 20px;
+      z-index: 5;
+    }
+    .placeholder.hidden { display: none; }
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 14px;
+    }
+    .placeholder h3 { font-size: 15px; margin-bottom: 6px; font-weight: 600; }
+    .placeholder p { font-size: 12px; color: #94a3b8; max-width: 320px; line-height: 1.5; }
+    
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  </style>
+</head>
+<body>
+  <div class="player-container" id="playerContainer">
+    <div class="overlay-bar">
+      <div class="badge">
+        <span class="dot" id="liveDot"></span>
+        <span id="cameraTitle">Live Camera</span>
+      </div>
+      <div class="controls">
+        <button class="btn-action" title="Capture Snapshot" id="btnSnapshot">📷</button>
+        <button class="btn-action" title="Fullscreen" id="btnFullscreen">⛶</button>
+      </div>
+    </div>
+
+    <video id="videoElement" autoplay playsinline muted></video>
+
+    <div class="placeholder" id="placeholder">
+      <div class="spinner" id="spinner"></div>
+      <h3 id="placeholderTitle">Connecting to Stream...</h3>
+      <p id="placeholderDesc">Initializing live RTSP feed. Please wait.</p>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
+    const cameraId = params.get("camera") || (pathParts[0] === "embed" && pathParts[1] ? pathParts[1] : "cam-01");
+
+    const video = document.getElementById("videoElement");
+    const placeholder = document.getElementById("placeholder");
+    const placeholderTitle = document.getElementById("placeholderTitle");
+    const placeholderDesc = document.getElementById("placeholderDesc");
+    const spinner = document.getElementById("spinner");
+    const liveDot = document.getElementById("liveDot");
+    const cameraTitle = document.getElementById("cameraTitle");
+    const playerContainer = document.getElementById("playerContainer");
+
+    cameraTitle.textContent = cameraId;
+    const streamUrl = `/streams/${cameraId}/index.m3u8`;
+
+    let hls = null;
+    let pollInterval = null;
+
+    async function checkStatus() {
+      try {
+        const res = await fetch(`/api/cameras/${cameraId}/status`);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    function initHls() {
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          liveSyncDurationCount: 1,
+          liveMaxLatencyDurationCount: 3,
+          maxBufferLength: 4,
+          maxMaxBufferLength: 8,
+          manifestLoadingMaxRetry: 8,
+          manifestLoadingRetryDelay: 1000
+        });
+
+        hls.loadSource(`${streamUrl}?t=${Date.now()}`);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          placeholder.classList.add("hidden");
+          liveDot.className = "dot live";
+          video.play().catch(() => {});
+        });
+
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal) return;
+          liveDot.className = "dot buffering";
+
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            setTimeout(() => {
+              if (hls) hls.loadSource(`${streamUrl}?t=${Date.now()}`);
+            }, 1200);
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            showError("Stream Interrupted", "Reconnecting to live feed...");
+            setTimeout(startWorkflow, 2000);
+          }
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = `${streamUrl}?t=${Date.now()}`;
+        video.addEventListener("loadedmetadata", () => {
+          placeholder.classList.add("hidden");
+          liveDot.className = "dot live";
+          video.play().catch(() => {});
+        });
+      }
+    }
+
+    function showError(title, desc) {
+      placeholder.classList.remove("hidden");
+      spinner.style.display = "none";
+      liveDot.className = "dot";
+      placeholderTitle.textContent = title;
+      placeholderDesc.textContent = desc;
+    }
+
+    function showBuffering() {
+      placeholder.classList.remove("hidden");
+      spinner.style.display = "block";
+      liveDot.className = "dot buffering";
+      placeholderTitle.textContent = "Connecting to Camera...";
+      placeholderDesc.textContent = "Receiving stream packets. Please wait.";
+    }
+
+    async function startWorkflow() {
+      showBuffering();
+      const status = await checkStatus();
+
+      if (!status || !status.running) {
+        // Auto-start stream if idle
+        try {
+          await fetch(`/api/cameras/${cameraId}/start`, { method: "POST" });
+        } catch {}
+      }
+
+      let attempts = 0;
+      clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        attempts++;
+        const cur = await checkStatus();
+        if (cur && cur.playlistReady) {
+          clearInterval(pollInterval);
+          initHls();
+        } else if (attempts >= 15) {
+          clearInterval(pollInterval);
+          showError("Camera Offline", cur?.error || "Camera feed timed out. Verify camera power and RTSP URL.");
+        }
+      }, 1000);
+    }
+
+    document.getElementById("btnFullscreen").addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        playerContainer.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+
+    document.getElementById("btnSnapshot").addEventListener("click", () => {
+      if (!video || !video.videoWidth) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      const link = document.createElement("a");
+      link.download = `${cameraId}-snapshot-${Date.now()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    startWorkflow();
+  </script>
+</body>
+</html>

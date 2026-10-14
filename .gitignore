@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production build outputs
+client/dist/
+dist/
+
+# Dynamic HLS stream segments
+server/public/streams/
+
+# Local environment configuration (keep credentials private)
+.env
+.env.local
+.env.*.local
+server/.env
+server/.env.local
+client/.env
+client/.env.local
+
+# Logs and temp files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
