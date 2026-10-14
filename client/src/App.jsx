@@ -45,10 +45,12 @@ export default function App() {
   const hlsRef = useRef(null);
   const heartbeatTimer = useRef(null);
 
+  const API_BASE_URL = "https://lawngreen-spider-136291.hostingersite.com";
+
   // Fetch all registered cameras
   const fetchCameras = useCallback(async () => {
     try {
-      const res = await fetch("https://lawngreen-spider-136291.hostingersite.com/api/cameras");
+      const res = await fetch(`${API_BASE_URL}/api/cameras`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setCameras(data);
@@ -165,7 +167,7 @@ export default function App() {
   async function handleStartStream(camId) {
     setBusyAction(camId);
     try {
-      const res = await fetch(`https://lawngreen-spider-136291.hostingersite.com/api/cameras/${camId}/start`, { method: "POST" });
+      const res = await fetch(`${API_BASE_URL}/api/cameras/${camId}/start`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to start stream");
       setBannerMessage({ type: "success", text: `Stream started for camera: ${camId}` });
@@ -182,7 +184,7 @@ export default function App() {
   async function handleStopStream(camId) {
     setBusyAction(camId);
     try {
-      const res = await fetch(`https://lawngreen-spider-136291.hostingersite.com/api/cameras/${camId}/stop`, { method: "POST" });
+      const res = await fetch(`${API_BASE_URL}/api/cameras/${camId}/stop`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to stop stream");
       setBannerMessage({ type: "info", text: `Stream stopped for camera: ${camId}` });
@@ -212,7 +214,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch("https://lawngreen-spider-136291.hostingersite.com/api/cameras", {
+      const res = await fetch(`${API_BASE_URL}/api/cameras`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
@@ -235,7 +237,7 @@ export default function App() {
     if (!window.confirm(`Are you sure you want to delete '${camName}' (${camId})?`)) return;
 
     try {
-      const res = await fetch(`https://lawngreen-spider-136291.hostingersite.com/api/cameras/${camId}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE_URL}/api/cameras/${camId}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Failed to delete camera");
